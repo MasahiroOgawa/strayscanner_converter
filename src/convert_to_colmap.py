@@ -214,10 +214,10 @@ def main():
     parser.add_argument("input_dir", type=Path, help="Path to Stray Scanner data directory")
     parser.add_argument("output_dir", type=Path, nargs="?", default=None,
                         help="Path to output COLMAP dataset directory (default: <input_dir>/)")
-    parser.add_argument("--subsample-frames", type=int, default=1,
-                        help="Use every Nth frame for point cloud (default: 1)")
-    parser.add_argument("--subsample-pixels", type=int, default=1,
-                        help="Use every Nth pixel in depth for point cloud (default: 1)")
+    parser.add_argument("--subsample-frames", type=int, default=10,
+                        help="Use every Nth frame for point cloud (default: 10)")
+    parser.add_argument("--subsample-pixels", type=int, default=3,
+                        help="Use every Nth pixel in depth for point cloud (default: 3)")
     args = parser.parse_args()
     if args.output_dir is None:
         args.output_dir = args.input_dir
