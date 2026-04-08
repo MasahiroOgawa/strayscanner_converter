@@ -8,13 +8,13 @@ parser = argparse.ArgumentParser(
     description="Visualize Stray Scanner depth, confidence, and RGB data in a 2x2 grid."
 )
 parser.add_argument("input", type=Path, help="Path to Stray Scanner data directory (containing depth/, confidence/)")
-parser.add_argument("--rgb-dir", type=Path, default=None, help="Path to extracted RGB frames directory (default: input/rgb_frames/)")
+parser.add_argument("--rgb-dir", type=Path, default=None, help="Path to extracted RGB frames directory (default: <input_dir>/images/)")
 parser.add_argument("--frame", type=int, default=0, help="Frame number to visualize (default: 0)")
 parser.add_argument("-o", "--output", type=Path, default=None, help="Output PNG path (default: output/<input_data_name>/depth_vis_NNNNNN.png)")
 args = parser.parse_args()
 
 data = args.input.resolve()
-rgb_dir = args.rgb_dir.resolve() if args.rgb_dir else data / "rgb_frames"
+rgb_dir = args.rgb_dir.resolve() if args.rgb_dir else data / "images"
 frame_id = f"{args.frame:06d}"
 
 rgb_path = rgb_dir / f"{frame_id}.png"
