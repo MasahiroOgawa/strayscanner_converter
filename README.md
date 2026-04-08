@@ -45,7 +45,7 @@ uv sync
 uv run python src/extract_rgb_frames.py <path_to_scan>/rgb.mp4
 ```
 
-Frames are saved to `output/<scan_name>/` by default.
+Frames are saved to `<path_to_scan>/images/` by default.
 
 ```bash
 # Custom output directory
@@ -55,12 +55,12 @@ uv run python src/extract_rgb_frames.py <path_to_scan>/rgb.mp4 -o /custom/output
 ### 2. Visualize depth
 
 ```bash
-uv run python src/visualize_depth.py <path_to_scan> --rgb-dir output/<scan_name> --frame 10
+uv run python src/visualize_depth.py <path_to_scan> --rgb-dir <path_to_scan>/images --frame 10
 ```
 
-Output PNG is saved to `output/<scan_name>/depth_vis_000010.png` by default.
+Output PNG is saved to `<path_to_scan>/images/depth_vis_000010.png` by default.
 
 ```bash
 # Custom output path
-uv run python src/visualize_depth.py <path_to_scan> --rgb-dir output/<scan_name> --frame 10 -o custom_output.png
+uv run python src/visualize_depth.py <path_to_scan> --rgb-dir <path_to_scan>/images --frame 10 -o custom_output.png
 ```
