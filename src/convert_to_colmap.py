@@ -128,7 +128,7 @@ def generate_points3d(data_dir, frames, subsample_frames=10, subsample_pixels=8)
         subsample_pixels: Use every Nth pixel in depth map.
     """
     depth_dir = data_dir / "depth"
-    image_dir = data_dir / "image"
+    image_dir = data_dir / "images"
     points = []
     colors = []
 
@@ -226,9 +226,12 @@ def main():
     frames = read_odometry(args.input_dir / "odometry.csv")
 
     # Filter to frames that have corresponding images
-    image_dir = args.input_dir / "image"
+    image_dir = args.input_dir / "images"
     frames = [f for f in frames if (image_dir / f"{f['frame']}.png").exists()]
     print(f"Found {len(frames)} frames with images")
+    if not frames:
+        print("Error: no frames with images found. Run extract_rgb_frames.py first.")
+        raise SystemExit(1)
 
     # Create output directories
     images_out = args.output_dir / "images"
@@ -236,13 +239,14 @@ def main():
     images_out.mkdir(parents=True, exist_ok=True)
     sparse_out.mkdir(parents=True, exist_ok=True)
 
-    # Copy/symlink images
-    print("Symlinking images...")
-    for fr in frames:
-        src = (image_dir / f"{fr['frame']}.png").resolve()
-        dst = images_out / f"{fr['frame']}.png"
-        if not dst.exists():
-            dst.symlink_to(src)
+    # Symlink images if source and output differ
+    if image_dir.resolve() != images_out.resolve():
+        print("Symlinking images...")
+        for fr in frames:
+            src = (image_dir / f"{fr['frame']}.png").resolve()
+            dst = images_out / f"{fr['frame']}.png"
+            if not dst.exists():
+                dst.symlink_to(src)
 
     # Get image dimensions
     sample_img = cv2.imread(str(image_dir / f"{frames[0]['frame']}.png"))
