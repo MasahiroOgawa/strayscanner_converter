@@ -2,7 +2,6 @@
 
 import argparse
 import csv
-import os
 import struct
 from pathlib import Path
 
@@ -121,17 +120,18 @@ def write_images_bin(path, frames):
             f.write(struct.pack("<Q", 0))
 
 
-def generate_points3d(data_dir, frames, subsample_frames=10, subsample_pixels=8):
+def generate_points3d(input_dir, images_dir, frames, subsample_frames=10, subsample_pixels=8):
     """Generate 3D points by unprojecting depth maps.
 
     Args:
-        data_dir: Path to stray scanner data directory.
+        input_dir: Stray Scanner data dir (source of depth/).
+        images_dir: Directory holding the extracted RGB frames (source of colors).
         frames: List of frame dicts from odometry.
         subsample_frames: Use every Nth frame.
         subsample_pixels: Use every Nth pixel in depth map.
     """
-    depth_dir = data_dir / "depth"
-    image_dir = data_dir / "images"
+    depth_dir = input_dir / "depth"
+    image_dir = images_dir
     points = []
     colors = []
 
@@ -214,58 +214,46 @@ def write_points3d_bin(path, points, colors):
 
 def main():
     parser = argparse.ArgumentParser(description="Convert Stray Scanner data to COLMAP format")
-    parser.add_argument("input_dir", type=Path, help="Path to Stray Scanner data directory")
+    parser.add_argument("input_dir", type=Path, help="Path to Stray Scanner data directory (read-only)")
     parser.add_argument("output_dir", type=Path, nargs="?", default=None,
-                        help="Path to output COLMAP dataset directory (default: <input_dir>/)")
+                        help="Path to output COLMAP dataset directory (default: output/<input_dir_name>/)")
     parser.add_argument("--subsample-frames", type=int, default=10,
                         help="Use every Nth frame for point cloud (default: 10)")
     parser.add_argument("--subsample-pixels", type=int, default=3,
                         help="Use every Nth pixel in depth for point cloud (default: 3)")
     args = parser.parse_args()
     if args.output_dir is None:
-        args.output_dir = args.input_dir
+        repo_root = Path(__file__).resolve().parent.parent
+        args.output_dir = repo_root / "output" / args.input_dir.resolve().name
 
-    print(f"Reading odometry from {args.input_dir}")
-    frames = read_odometry(args.input_dir / "odometry.csv")
-
-    # Extract frames on demand if the images directory is empty or missing
-    image_dir = args.input_dir / "images"
-    if not image_dir.exists() or not any(image_dir.glob("*.png")):
-        video_path = args.input_dir / "rgb.mp4"
-        if not video_path.exists():
-            print(f"Error: no images in {image_dir} and no {video_path} to extract from.")
-            raise SystemExit(1)
-        print(f"No frames found in {image_dir}; extracting from {video_path}...")
-        count = extract_frames(video_path, image_dir)
-        print(f"Extracted {count} frames to {image_dir}/")
-
-    # Filter to frames that have corresponding images
-    frames = [f for f in frames if (image_dir / f"{f['frame']}.png").exists()]
-    print(f"Found {len(frames)} frames with images")
-    if not frames:
-        print("Error: no frames match odometry entries after extraction.")
-        raise SystemExit(1)
-
-    # Create output directories
     images_out = args.output_dir / "images"
     sparse_out = args.output_dir / "sparse" / "0"
     images_out.mkdir(parents=True, exist_ok=True)
     sparse_out.mkdir(parents=True, exist_ok=True)
 
-    # Symlink images if source and output differ.
-    # Use relative targets so the output dataset stays valid when copied/moved.
-    if image_dir.resolve() != images_out.resolve():
-        print("Symlinking images...")
-        for fr in frames:
-            src = image_dir / f"{fr['frame']}.png"
-            dst = images_out / f"{fr['frame']}.png"
-            if dst.exists() or dst.is_symlink():
-                continue
-            rel_src = os.path.relpath(src.resolve(), start=dst.parent.resolve())
-            dst.symlink_to(rel_src)
+    print(f"Reading odometry from {args.input_dir}")
+    frames = read_odometry(args.input_dir / "odometry.csv")
+
+    # Extract frames into the output directory on demand.
+    # The input directory is treated as read-only; images always live under output_dir.
+    if not any(images_out.glob("*.png")):
+        video_path = args.input_dir / "rgb.mp4"
+        if not video_path.exists():
+            print(f"Error: no images in {images_out} and no {video_path} to extract from.")
+            raise SystemExit(1)
+        print(f"Extracting frames from {video_path} into {images_out}...")
+        count = extract_frames(video_path, images_out)
+        print(f"Extracted {count} frames")
+
+    # Filter to frames that have corresponding images
+    frames = [f for f in frames if (images_out / f"{f['frame']}.png").exists()]
+    print(f"Found {len(frames)} frames with images")
+    if not frames:
+        print("Error: no frames match odometry entries after extraction.")
+        raise SystemExit(1)
 
     # Get image dimensions
-    sample_img = cv2.imread(str(image_dir / f"{frames[0]['frame']}.png"))
+    sample_img = cv2.imread(str(images_out / f"{frames[0]['frame']}.png"))
     img_h, img_w = sample_img.shape[:2]
 
     # Write cameras.bin
@@ -279,7 +267,7 @@ def main():
     # Generate and write points3D.bin
     print("Generating 3D points from depth maps...")
     points, colors = generate_points3d(
-        args.input_dir, frames,
+        args.input_dir, images_out, frames,
         subsample_frames=args.subsample_frames,
         subsample_pixels=args.subsample_pixels,
     )

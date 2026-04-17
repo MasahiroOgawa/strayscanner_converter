@@ -40,13 +40,15 @@ uv sync
 
 ## Usage
 
+The Stray Scanner directory (e.g. `data/<scan>/`) is treated as **read-only input**. All generated artifacts (extracted frames, depth visualizations, COLMAP datasets) go under `output/<scan_name>/`.
+
 ### 1. Extract RGB frames
 
 ```bash
 uv run python src/extract_rgb_frames.py <path_to_scan>/rgb.mp4
 ```
 
-Frames are saved to `<path_to_scan>/images/` by default.
+Frames are saved to `output/<scan_name>/images/` by default.
 
 ```bash
 # Custom output directory
@@ -58,29 +60,29 @@ uv run python src/extract_rgb_frames.py <path_to_scan>/rgb.mp4 -o /custom/output
 Inspect depth quality and the effect of confidence filtering on a single frame. Useful for sanity-checking a scan and picking a confidence threshold before running downstream pipelines.
 
 ```bash
-uv run python src/visualize_depth.py <path_to_scan> --rgb-dir <path_to_scan>/images --frame 10
+uv run python src/visualize_depth.py <path_to_scan> --rgb-dir output/<scan_name>/images --frame 10
 ```
 
-Output PNG is saved to `<path_to_scan>/images/depth_vis_000010.png` by default.
+Output PNG is saved to `output/<scan_name>/depth_vis_000010.png` by default.
 
 ```bash
 # Custom output path
-uv run python src/visualize_depth.py <path_to_scan> --rgb-dir <path_to_scan>/images --frame 10 -o custom_output.png
+uv run python src/visualize_depth.py <path_to_scan> --rgb-dir output/<scan_name>/images --frame 10 -o custom_output.png
 ```
 
 ### 3. Convert to COLMAP format (for 3D Gaussian Splatting)
 
-Produces a COLMAP sparse model from the extracted frames plus the Stray Scanner intrinsics/odometry, and seeds `points3D.bin` by unprojecting the depth maps into the world frame. If `<path_to_scan>/images/` is empty or missing, frames are automatically extracted from `rgb.mp4` first, so step 1 is optional.
+Produces a COLMAP sparse model from the Stray Scanner intrinsics/odometry and seeds `points3D.bin` by unprojecting the depth maps into the world frame. If `output/<scan_name>/images/` is empty, frames are automatically extracted from `rgb.mp4` first, so step 1 is optional.
 
 ```bash
 uv run python src/convert_to_colmap.py <path_to_scan>
 ```
 
-This writes to `<path_to_scan>/` by default:
+This writes (by default) to `output/<scan_name>/`:
 
 ```
-<path_to_scan>/
-├── images/                 # symlinked if output dir differs
+output/<scan_name>/
+├── images/                 # real PNG frames (self-contained; safe to copy)
 └── sparse/0/
     ├── cameras.bin
     ├── images.bin
