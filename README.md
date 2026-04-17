@@ -70,7 +70,7 @@ uv run python src/visualize_depth.py <path_to_scan> --rgb-dir <path_to_scan>/ima
 
 ### 3. Convert to COLMAP format (for 3D Gaussian Splatting)
 
-Produces a COLMAP sparse model from the extracted frames plus the Stray Scanner intrinsics/odometry, and seeds `points3D.bin` by unprojecting the depth maps into the world frame. Run **after** `extract_rgb_frames.py`.
+Produces a COLMAP sparse model from the extracted frames plus the Stray Scanner intrinsics/odometry, and seeds `points3D.bin` by unprojecting the depth maps into the world frame. If `<path_to_scan>/images/` is empty or missing, frames are automatically extracted from `rgb.mp4` first, so step 1 is optional.
 
 ```bash
 uv run python src/convert_to_colmap.py <path_to_scan>

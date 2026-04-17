@@ -8,6 +8,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from extract_rgb_frames import extract_frames
+
 # COLMAP camera model IDs
 PINHOLE_MODEL_ID = 1
 
@@ -225,12 +227,22 @@ def main():
     print(f"Reading odometry from {args.input_dir}")
     frames = read_odometry(args.input_dir / "odometry.csv")
 
-    # Filter to frames that have corresponding images
+    # Extract frames on demand if the images directory is empty or missing
     image_dir = args.input_dir / "images"
+    if not image_dir.exists() or not any(image_dir.glob("*.png")):
+        video_path = args.input_dir / "rgb.mp4"
+        if not video_path.exists():
+            print(f"Error: no images in {image_dir} and no {video_path} to extract from.")
+            raise SystemExit(1)
+        print(f"No frames found in {image_dir}; extracting from {video_path}...")
+        count = extract_frames(video_path, image_dir)
+        print(f"Extracted {count} frames to {image_dir}/")
+
+    # Filter to frames that have corresponding images
     frames = [f for f in frames if (image_dir / f"{f['frame']}.png").exists()]
     print(f"Found {len(frames)} frames with images")
     if not frames:
-        print("Error: no frames with images found. Run extract_rgb_frames.py first.")
+        print("Error: no frames match odometry entries after extraction.")
         raise SystemExit(1)
 
     # Create output directories
