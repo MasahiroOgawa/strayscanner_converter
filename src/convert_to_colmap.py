@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import os
 import struct
 from pathlib import Path
 
@@ -251,14 +252,17 @@ def main():
     images_out.mkdir(parents=True, exist_ok=True)
     sparse_out.mkdir(parents=True, exist_ok=True)
 
-    # Symlink images if source and output differ
+    # Symlink images if source and output differ.
+    # Use relative targets so the output dataset stays valid when copied/moved.
     if image_dir.resolve() != images_out.resolve():
         print("Symlinking images...")
         for fr in frames:
-            src = (image_dir / f"{fr['frame']}.png").resolve()
+            src = image_dir / f"{fr['frame']}.png"
             dst = images_out / f"{fr['frame']}.png"
-            if not dst.exists():
-                dst.symlink_to(src)
+            if dst.exists() or dst.is_symlink():
+                continue
+            rel_src = os.path.relpath(src.resolve(), start=dst.parent.resolve())
+            dst.symlink_to(rel_src)
 
     # Get image dimensions
     sample_img = cv2.imread(str(image_dir / f"{frames[0]['frame']}.png"))
